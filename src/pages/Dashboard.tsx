@@ -36,7 +36,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-white p-8">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Welcome to the Academic Record Request System</h1>
+          <h1 className="text-3xl font-bold text-gray-800">Welcome to ARRS</h1>
           <Button
             onClick={handleSignOut}
             variant="outline"
@@ -46,10 +46,9 @@ export default function Dashboard() {
           </Button>
         </div>
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">About ARRS</h2>
+          <h2 className="text-xl font-semibold mb-4">Dashboard</h2>
           <p className="text-gray-600">
-            The Academic Record Request System (ARRS) streamlines the process of requesting and managing academic documents. 
-            Here you can submit requests for transcripts, certifications, and other academic records with ease and track their status in real-time.
+            Welcome to your dashboard. Here you can manage and track your academic record requests.
           </p>
         </div>
       </div>
