@@ -58,8 +58,7 @@ export default function Index() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'https://wkwlvbjnliddjqbuqzdp.supabase.co/auth/v1/callback',
-          scopes: 'email profile',
+          redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -68,7 +67,6 @@ export default function Index() {
         },
       });
 
-      // If there's no error and no data, it means the popup was closed
       if (!error && !data) {
         toast({
           variant: "destructive",
