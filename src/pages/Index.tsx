@@ -58,7 +58,7 @@ export default function Index() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: 'https://wkwlvbjnliddjqbuqzdp.supabase.co/auth/v1/callback',
           scopes: 'email profile',
           queryParams: {
             access_type: 'offline',
