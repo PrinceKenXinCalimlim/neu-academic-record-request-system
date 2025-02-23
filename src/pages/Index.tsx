@@ -57,6 +57,7 @@ export default function Index() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
+          redirectTo: `${window.location.origin}/dashboard`,
           queryParams: {
             hd: 'neu.edu.ph',
             prompt: 'select_account',
