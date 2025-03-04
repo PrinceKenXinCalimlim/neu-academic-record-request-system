@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,6 +9,7 @@ import { Session } from "@supabase/supabase-js";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
+import { toast } from "sonner";
 
 const queryClient = new QueryClient();
 
@@ -19,16 +19,26 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          const email = session.user?.email;
+          
+          if (email && !email.endsWith('@neu.edu.ph')) {
+            await supabase.auth.signOut();
+            toast.error("Only @neu.edu.ph email addresses are allowed to access this system.");
+            setSession(null);
+          } else {
+            setSession(session);
+          }
+        } else {
+          setSession(session);
+        }
         setLoading(false);
       }
     );
@@ -53,13 +63,11 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
@@ -86,16 +94,26 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          const email = session.user?.email;
+          
+          if (email && !email.endsWith('@neu.edu.ph')) {
+            await supabase.auth.signOut();
+            toast.error("Only @neu.edu.ph email addresses are allowed to access this system.");
+            setSession(null);
+          } else {
+            setSession(session);
+          }
+        } else {
+          setSession(session);
+        }
         setLoading(false);
       }
     );
@@ -120,7 +138,6 @@ const App = () => (
           <Routes>
             <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

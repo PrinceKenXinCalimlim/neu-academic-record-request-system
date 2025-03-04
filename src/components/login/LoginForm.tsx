@@ -10,6 +10,11 @@ export const LoginForm: React.FC = () => {
         provider: 'google',
         options: {
           redirectTo: window.location.origin,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+            hd: 'neu.edu.ph' // Restrict to neu.edu.ph domain
+          }
         }
       });
 
@@ -42,9 +47,13 @@ export const LoginForm: React.FC = () => {
             <span className="block text-center mt-0">(ARRS)</span>
           </h1>
 
+          <p className="text-white text-center mt-4 mb-8">
+            Only users with an <strong>@neu.edu.ph</strong> email address can access this system.
+          </p>
+
           <button
             onClick={handleGoogleLogin}
-            className="bg-white shadow-[0px_4px_4px_rgba(0,0,0,0.25)] border flex w-full flex-col text-xl text-black font-semibold justify-center mt-[126px] px-[47px] py-5 rounded-[20px] border-[rgba(0,0,0,0.2)] border-solid max-md:max-w-full max-md:mt-10 max-md:px-5 hover:bg-gray-50 transition-colors"
+            className="bg-white shadow-[0px_4px_4px_rgba(0,0,0,0.25)] border flex w-full flex-col text-xl text-black font-semibold justify-center mt-[80px] px-[47px] py-5 rounded-[20px] border-[rgba(0,0,0,0.2)] border-solid max-md:max-w-full max-md:mt-10 max-md:px-5 hover:bg-gray-50 transition-colors"
             aria-label="Sign in with Google"
           >
             <div className="flex items-stretch gap-[34px]">
