@@ -1,19 +1,28 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+
+// Stripe publishable key - this is safe to include in frontend code
+const STRIPE_PUBLISHABLE_KEY = "pk_test_51R2SPX4SH5jlvHudJgu05MgpuZ4xIV5RO5YlmQfbkXgpN4BpkDIwAKOicjXtmB6sw0nubD1hafbVS4E0qCppW5Eu00JgZ4yPGS";
 
 export const LoginForm: React.FC = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
   const handleGoogleLogin = async () => {
     try {
+      setIsLoading(true);
+      console.log("Starting Google login...");
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: `${window.location.origin}/dashboard`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
-            hd: 'neu.edu.ph' // Restrict to neu.edu.ph domain
+            hd: 'neu.edu.ph'
           }
         }
       });
@@ -21,12 +30,61 @@ export const LoginForm: React.FC = () => {
       if (error) {
         toast.error(`Login failed: ${error.message}`);
         console.error("Google login error:", error);
+      } else {
+        // Only attempt to log activity for faculty users
+        const session = await supabase.auth.getSession();
+        console.log("Google sign-in success, checking session...", session);
+        if (session.data.session?.user) {
+          const userId = session.data.session.user.id;
+          
+          // Check if user has faculty role before attempting to log
+          const { data: hasFacultyRole, error: facultyError } = await supabase.rpc(
+            'has_role',
+            { user_id: userId, role: 'faculty' }
+          );
+          console.log("Faculty role check result:", { hasFacultyRole, facultyError });
+          
+          if (hasFacultyRole && !facultyError) {
+            try {
+              console.log("User is faculty, attempting to log login activity...");
+              const { data: logResult, error: logError } = await supabase.rpc(
+                'log_activity',
+                {
+                  p_user_id: userId,
+                  p_activity_type: 'login',
+                  p_details: `User logged in - ${session.data.session.user.email}`,
+                  p_related_user_id: null,
+                  p_related_id: null
+                }
+              );
+              if (logError) {
+                console.error("Error logging login activity for faculty:", logError);
+              } else {
+                console.log("Successfully logged login activity for faculty user.", logResult);
+              }
+            } catch (logEx) {
+              console.error("Exception during logging login activity:", logEx);
+            }
+          } else {
+            console.log("User does NOT have 'faculty' role, skipping login activity logging.");
+          }
+        } else {
+          console.log("Session has no user, cannot log activity.");
+        }
       }
     } catch (err) {
       console.error("Unexpected error during login:", err);
       toast.error("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  // Make Stripe publishable key available globally
+  React.useEffect(() => {
+    // Use type assertion to avoid TypeScript error
+    (window as any).STRIPE_PUBLISHABLE_KEY = STRIPE_PUBLISHABLE_KEY;
+  }, []);
 
   return (
     <section className="w-6/12 max-md:w-full relative min-h-screen" aria-label="Login form">
@@ -47,13 +105,10 @@ export const LoginForm: React.FC = () => {
             <span className="block text-center mt-0">(ARRS)</span>
           </h1>
 
-          <p className="text-white text-center mt-4 mb-8">
-            Only users with an <strong>@neu.edu.ph</strong> email address can access this system.
-          </p>
-
           <button
             onClick={handleGoogleLogin}
-            className="bg-white shadow-[0px_4px_4px_rgba(0,0,0,0.25)] border flex w-full flex-col text-xl text-black font-semibold justify-center mt-[80px] px-[47px] py-5 rounded-[20px] border-[rgba(0,0,0,0.2)] border-solid max-md:max-w-full max-md:mt-10 max-md:px-5 hover:bg-gray-50 transition-colors"
+            disabled={isLoading}
+            className="bg-white shadow-[0px_4px_4px_rgba(0,0,0,0.25)] border flex w-full flex-col text-xl text-black font-semibold justify-center mt-[80px] px-[47px] py-5 rounded-[20px] border-[rgba(0,0,0,0.2)] border-solid max-md:max-w-full max-md:mt-10 max-md:px-5 hover:bg-gray-50 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
             aria-label="Sign in with Google"
           >
             <div className="flex items-stretch gap-[34px]">
@@ -62,7 +117,9 @@ export const LoginForm: React.FC = () => {
                 alt="Google logo"
                 className="aspect-[0.96] object-contain w-12 shrink-0"
               />
-              <span className="basis-auto my-auto">Continue with Google</span>
+              <span className="basis-auto my-auto">
+                {isLoading ? "Loading..." : "Continue with Google"}
+              </span>
             </div>
           </button>
         </div>
@@ -70,3 +127,4 @@ export const LoginForm: React.FC = () => {
     </section>
   );
 };
+
