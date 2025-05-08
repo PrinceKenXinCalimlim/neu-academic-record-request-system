@@ -33,7 +33,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 
-// Update type definition to better handle related user info
 type ActivityLog = {
   id: string;
   user_id: string;
@@ -45,21 +44,23 @@ type ActivityLog = {
   related_user_name?: string | null;
   related_user_avatar?: string | null;
   user_role?: string | null;
+  related_user_role?: string | null;
 };
 
-// Add this helper for colored border
 function getActivityIconColor(activityType: string) {
   switch (activityType) {
     case 'login':
-      return '#3b82f6'; // blue-500
+      return '#3b82f6';
     case 'sign_out':
-      return '#f59e42'; // orange-400
+      return '#f59e42';
     case 'schedule_pickup':
-      return '#22c55e'; // green-500
+      return '#fde047';
     case 'approve_request':
-      return '#a78bfa'; // purple-400
+      return '#a78bfa';
+    case 'confirm_pickup':
+      return '#22c55e';
     default:
-      return '#cbd5e1'; // slate-300
+      return '#cbd5e1';
   }
 }
 
@@ -146,7 +147,6 @@ const EmployeeLogs: React.FC = () => {
     try {
       console.log("Fetching activity logs...");
       
-      // Fetch ALL logs without filtering by user or activity type
       const { data: logsData, error: logsError } = await supabase
         .from('activity_logs')
         .select('*')
@@ -163,7 +163,6 @@ const EmployeeLogs: React.FC = () => {
       
       console.log("Retrieved logs data:", logsData);
       
-      // Process logs to include user profiles information
       const processedLogs: ActivityLog[] = [];
       
       for (const log of logsData) {
@@ -171,8 +170,8 @@ const EmployeeLogs: React.FC = () => {
         let relatedUserName = null;
         let userName = null;
         let userRole = null;
+        let relatedUserRole = null;
         
-        // Get the user who performed the action
         if (log.user_id) {
           const { data: userProfileData } = await supabase
             .from('profiles')
@@ -183,7 +182,7 @@ const EmployeeLogs: React.FC = () => {
           if (userProfileData) {
             userName = userProfileData.full_name;
           }
-          // Fetch user roles for login/sign_out logs
+          
           if (['login', 'sign_out'].includes(log.activity_type)) {
             const { data: userRolesData } = await supabase.rpc('get_user_roles', { user_id: log.user_id });
             if (userRolesData && Array.isArray(userRolesData)) {
@@ -194,7 +193,6 @@ const EmployeeLogs: React.FC = () => {
           }
         }
         
-        // If there's a related user (e.g., student for pickup scheduling), fetch their profile info
         if (log.related_user_id) {
           const { data: profileData } = await supabase
             .from('profiles')
@@ -206,12 +204,20 @@ const EmployeeLogs: React.FC = () => {
             relatedUserAvatar = profileData.avatar_url;
             relatedUserName = profileData.full_name;
           }
+          
+          const { data: relatedUserRolesData } = await supabase.rpc('get_user_roles', { user_id: log.related_user_id });
+          if (relatedUserRolesData && Array.isArray(relatedUserRolesData)) {
+            if (relatedUserRolesData.includes('admin')) relatedUserRole = 'Admin';
+            else if (relatedUserRolesData.includes('faculty')) relatedUserRole = 'Employee';
+            else relatedUserRole = 'Student';
+          }
         }
         
-        // For schedule pickup activities, update the details to include the processor's name
         let details = log.details;
         if (log.activity_type === 'schedule_pickup' && userName) {
           details = `${userName} scheduled pickup for request ${log.related_id} - ${relatedUserName || 'Unknown Student'}`;
+        } else if (log.activity_type === 'confirm_pickup') {
+          details = `Completed pickup for request ${log.related_id} - ${relatedUserName || 'Unknown Student'}`;
         }
         
         processedLogs.push({
@@ -220,6 +226,7 @@ const EmployeeLogs: React.FC = () => {
           related_user_avatar: relatedUserAvatar,
           related_user_name: relatedUserName,
           user_role: userRole,
+          related_user_role: relatedUserRole,
         });
       }
       
@@ -280,9 +287,11 @@ const EmployeeLogs: React.FC = () => {
       case 'sign_out':
         return <LogOut className="h-4 w-4 text-orange-500" />;
       case 'schedule_pickup':
-        return <CalendarClock className="h-4 w-4 text-green-500" />;
+        return <CalendarClock className="h-4 w-4 text-yellow-500" />;
       case 'approve_request':
         return <CheckCircle2 className="h-4 w-4 text-purple-500" />;
+      case 'confirm_pickup':
+        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
       default:
         return <Clock className="h-4 w-4 text-gray-500" />;
     }
@@ -296,6 +305,8 @@ const EmployeeLogs: React.FC = () => {
         return 'Sign Out';
       case 'schedule_pickup':
         return 'Schedule Pickup';
+      case 'confirm_pickup':
+        return 'Complete Pickup';
       case 'approve_request':
         return 'Approve Request';
       default:
@@ -410,6 +421,10 @@ const EmployeeLogs: React.FC = () => {
                               <RadioGroupItem value="schedule_pickup" id="activity-schedule" />
                               <Label htmlFor="activity-schedule" className="text-sm">Schedule Pickup</Label>
                             </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="confirm_pickup" id="activity-complete-pickup" />
+                              <Label htmlFor="activity-complete-pickup" className="text-sm">Complete Pickup</Label>
+                            </div>
                           </div>
                         </RadioGroup>
                       </div>
@@ -510,7 +525,7 @@ const EmployeeLogs: React.FC = () => {
                     <TableHead className="w-[180px]">Date & Time</TableHead>
                     <TableHead className="w-[150px]">Activity</TableHead>
                     <TableHead>Details</TableHead>
-                    <TableHead className="w-[200px]">Related User</TableHead>
+                    <TableHead className="w-[200px]">Related User & Role</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -524,32 +539,38 @@ const EmployeeLogs: React.FC = () => {
                           <span title={getActivityName(log.activity_type)}>
                             {getActivityIcon(log.activity_type)}
                           </span>
-                          <span className="font-semibold text-gray-800">{getActivityName(log.activity_type)}</span>
+                          <span className="font-semibold text-gray-800">
+                            {getActivityName(log.activity_type)}
+                          </span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-gray-700">{log.details}</TableCell>
+                      <TableCell className="text-gray-700">
+                        {log.details}
+                      </TableCell>
                       <TableCell>
                         {log.related_user_id ? (
-                          <div className="flex items-center gap-2 bg-blue-50 rounded-lg px-2 py-1 group-hover:bg-blue-200/60 transition">
+                          <div className={`flex items-center gap-2 rounded-lg px-2 py-1 group-hover:bg-opacity-80 transition
+                            ${log.related_user_role === 'Admin' ? 'bg-green-50 text-green-900' : log.related_user_role === 'Employee' ? 'bg-yellow-50 text-yellow-900' : 'bg-blue-50 text-blue-900'}`}
+                          >
                             <Avatar className="h-8 w-8 mr-2">
                               <AvatarImage src={log.related_user_avatar || undefined} />
                               <AvatarFallback>
                                 <UserIcon className="h-4 w-4" />
                               </AvatarFallback>
                             </Avatar>
-                            <span className="text-sm font-medium text-blue-900">{log.related_user_name || "User"}</span>
+                            <span className="text-sm font-medium">{log.related_user_name || "User"}</span>
                           </div>
                         ) : (
                           ['login', 'sign_out'].includes(log.activity_type) ? (
                             <span className="flex items-center gap-2">
                               {log.user_role === 'Admin' && (
-                                <span className="rounded px-2 py-0.5 font-semibold text-xs text-white bg-green-500">Admin</span>
+                                <span className="rounded px-2 py-0.5 font-semibold text-xs bg-green-50 text-green-900">Admin</span>
                               )}
                               {log.user_role === 'Employee' && (
-                                <span className="rounded px-2 py-0.5 font-semibold text-xs text-white bg-yellow-500">Employee</span>
+                                <span className="rounded px-2 py-0.5 font-semibold text-xs bg-yellow-50 text-yellow-900">Employee</span>
                               )}
                               {log.user_role === 'Student' && (
-                                <span className="rounded px-2 py-0.5 font-semibold text-xs text-white bg-blue-500">Student</span>
+                                <span className="rounded px-2 py-0.5 font-semibold text-xs bg-blue-50 text-blue-900">Student</span>
                               )}
                             </span>
                           ) : (

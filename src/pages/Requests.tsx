@@ -156,17 +156,20 @@ const RequestCard: React.FC<{ request: Request }> = ({ request }) => {
             Student Number: {request.student_number}
           </CardDescription>
         </div>
-        <span className={`px-4 py-1 rounded-full text-sm font-semibold shadow ${
+        <span className={`px-4 py-1 min-w-[90px] flex items-center justify-center rounded-full text-sm font-semibold shadow whitespace-nowrap overflow-visible text-ellipsis ${
           request.status === 'approved' 
             ? 'bg-green-200 text-green-900' 
             : request.status === 'awaiting_pickup'
             ? 'bg-yellow-200 text-yellow-900'
+            : request.status === 'picked_up'
+            ? 'bg-blue-200 text-blue-900'
             : request.status === 'rejected'
             ? 'bg-red-200 text-red-900'
             : 'bg-blue-200 text-blue-900'
         }`}>
-          {request.status === 'approved' && 'Ready for Pickup'}
+          {request.status === 'approved' && 'Approved'}
           {request.status === 'awaiting_pickup' && 'Pending'}
+          {request.status === 'picked_up' && 'Completed'}
           {request.status === 'rejected' && 'Rejected'}
           {request.status === 'pending' && 'Pending'}
         </span>
@@ -418,6 +421,7 @@ const Requests: React.FC = () => {
     if (status === "all") return true;
     if (status === "pending") return request.status === "pending" || request.status === "awaiting_pickup";
     if (status === "approved") return request.status === "approved";
+    if (status === "picked_up") return request.status === "picked_up";
     return true;
   };
 
@@ -470,6 +474,7 @@ const Requests: React.FC = () => {
     setSortOption("date");
     setSortDirection("asc");
     setSearchTerm("");
+    setStatus("all");
     setShowFilters(false);
   };
 
@@ -511,11 +516,12 @@ const Requests: React.FC = () => {
             <div className="bg-white/80 rounded-2xl shadow-2xl border border-blue-100 p-7 flex flex-col sm:flex-row gap-4 items-center transition-all">
               <div className="relative flex-1 w-full">
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-blue-400 pointer-events-none" />
-                <Input
+                <input
+                  type="text"
                   placeholder="Search requests..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-12 pr-4 py-4 rounded-full border border-blue-100 shadow focus:ring-2 focus:ring-blue-200 bg-white/90 focus:outline-none transition-all w-full text-base hover:shadow-lg focus:shadow-lg placeholder:text-blue-400"
+                  className="pl-12 pr-4 py-4 rounded-full border border-blue-100 shadow focus:ring-2 focus:ring-blue-200 bg-white/80 focus:outline-none transition-all w-full text-base hover:shadow-lg focus:shadow-lg"
                 />
               </div>
               <div className="hidden sm:block h-10 w-px bg-blue-100 mx-2 rounded-full" />
@@ -541,14 +547,14 @@ const Requests: React.FC = () => {
                             value={documentType}
                             onValueChange={(value) => setDocumentType(value)}
                           >
-                            <ToggleGroupItem value="certificate">Certificate of Grades (COG)</ToggleGroupItem>
-                            <ToggleGroupItem value="certification">Certification</ToggleGroupItem>
-                            <ToggleGroupItem value="soa">Statement of Account (SOA)</ToggleGroupItem>
-                            <ToggleGroupItem value="registration_form">Registration Form</ToggleGroupItem>
-                            <ToggleGroupItem value="com">Certificate of Matriculation (COM)</ToggleGroupItem>
-                            <ToggleGroupItem value="coe">Certificate of Enrollment (COE)</ToggleGroupItem>
-                            <ToggleGroupItem value="coa">Certificate of No Availed Scholarship (COA)</ToggleGroupItem>
-                            <ToggleGroupItem value="others">Others</ToggleGroupItem>
+                            <ToggleGroupItem value="certificate" className={documentType.includes('certificate') ? 'bg-blue-500 text-white' : ''}>Certificate of Grades (COG)</ToggleGroupItem>
+                            <ToggleGroupItem value="certification" className={documentType.includes('certification') ? 'bg-blue-500 text-white' : ''}>Certification</ToggleGroupItem>
+                            <ToggleGroupItem value="soa" className={documentType.includes('soa') ? 'bg-blue-500 text-white' : ''}>Statement of Account (SOA)</ToggleGroupItem>
+                            <ToggleGroupItem value="registration_form" className={documentType.includes('registration_form') ? 'bg-blue-500 text-white' : ''}>Registration Form</ToggleGroupItem>
+                            <ToggleGroupItem value="com" className={documentType.includes('com') ? 'bg-blue-500 text-white' : ''}>Certificate of Matriculation (COM)</ToggleGroupItem>
+                            <ToggleGroupItem value="coe" className={documentType.includes('coe') ? 'bg-blue-500 text-white' : ''}>Certificate of Enrollment (COE)</ToggleGroupItem>
+                            <ToggleGroupItem value="coa" className={documentType.includes('coa') ? 'bg-blue-500 text-white' : ''}>Certificate of No Availed Scholarship (COA)</ToggleGroupItem>
+                            <ToggleGroupItem value="others" className={documentType.includes('others') ? 'bg-blue-500 text-white' : ''}>Others</ToggleGroupItem>
                           </ToggleGroup>
                         </div>
                         <div>
@@ -561,10 +567,18 @@ const Requests: React.FC = () => {
                               <SelectItem value="all">All</SelectItem>
                               <SelectItem value="pending">Pending</SelectItem>
                               <SelectItem value="approved">Approved</SelectItem>
+                              <SelectItem value="picked_up">Picked Up</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                       </div>
+                      <Button
+                        className="w-full bg-gradient-to-r from-blue-500 to-blue-400 text-white font-semibold rounded-full px-6 py-2 shadow mt-4"
+                        onClick={clearFilters}
+                        type="button"
+                      >
+                        Reset Filters
+                      </Button>
                     </div>
                   </PopoverContent>
                 </Popover>
