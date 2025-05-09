@@ -619,7 +619,7 @@ const Requests: React.FC = () => {
                       <div className="border-b border-gray-200 mb-4" />
                       {[
                         { key: 'request_date', label: 'Request Date', disabled: false },
-                        { key: 'pickup_date', label: 'Pickup Date', disabled: false },
+                        { key: 'pickup_date', label: 'Pickup Date', disabled: status === 'pending' },
                         { key: 'document_type', label: 'Document Type', disabled: documentType.length > 0 },
                         { key: 'status', label: 'Status', disabled: status !== 'all' }
                       ].map((item) => (
